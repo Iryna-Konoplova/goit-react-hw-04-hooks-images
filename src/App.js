@@ -3,10 +3,10 @@
 import { useState, useEffect } from 'react';
 
 // Компоненты
-import axios from 'axios';
-// import * as newsApi from './services/news-api';
+import api from "./services/news-api";
 import Searchbar from './components/Searchbar';
 import ImageGallery from './components/ImageGallery';
+import ImageGalleryItem from './components/ImageGalleryItem/ImageGalleryItem'
 import Button from './components/Button';
 import Modal from './components/Modal';
 import GalleryLoader from './components/Loader';
@@ -15,81 +15,100 @@ import GalleryLoader from './components/Loader';
 import styles from './App.module.css';
 
 
-
-axios.defaults.baseURL = 'https://pixabay.com/api/';
-const KEY = '21824668-10aeb8c8af54ec25684dd6884&';
-
-const fetchHits = ({ searchQuery = '', currentPage = 1 }) =>
-  axios
-    .get(
-      `?q=${searchQuery}&page=${currentPage}&key=${KEY}&image_type=photo&orientation=horizontal&per_page=12`,
-    )
-    .then(response => response.data.hits);
-
-
-
-
 export default function App() {
 
   const [hits, setHits] = useState([]);
-  const [query, setQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  const [largeImageURL, setLargeImageURL] = useState("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
   useEffect(() => {
+    if (!searchQuery) {
+      return;
+    }
+    fetchHits();
+  }, [searchQuery]);
+
+    useEffect(() => {
+    window.scrollTo({
+      top: document.documentElement.scrollHeight,
+      behavior: "smooth",
+    });
+  }, [hits]);
+
+    const  onChangeQuery = query => {
+      setSearchQuery(query);
+      setHits([]);
+      setCurrentPage(1);
+      setError(null)
+  };
+
+  const fetchHits = () => {
+    const option = { searchQuery, currentPage };
     setIsLoading(true);
+    api
+      .fetchHits(option)
+      .then(
+        (picturesArr) => setHits([...hits, ...picturesArr]),
+        setCurrentPage(currentPage + 1)
+      )
+      .catch((error) => setError(error))
+      .finally(() => setIsLoading(false));
+  };
 
-    fetchHits({ searchQuery: query, currentPage }).then(
-      responseHits => {
-        setHits(prevHits => [...prevHits, responseHits]);
-        setCurrentPage(prevCurrentPage => prevCurrentPage + 1);
-      })
-      .catch(error => setError(error.message))
-    .finally(() => setIsLoading(false));
-  }, [query, currentPage]);
+  const handleImageClick = (url) => {
+    setLargeImageURL(url);
+    toggleModal();
+  };
 
-
-  
-  const onChangeQuery = query => {
-    setQuery(query);
-    setCurrentPage(1);
-    setHits([]);
-    setError(null)
+  const toggleModal = () => {
+    setIsModalOpen((prevState) => !prevState);
   };
 
   const shouldRenderLoadMoreButton = hits.length > 0 && !isLoading;
 
-  return (
-   
-    <div className={styles.Container}>
-      {error && <h1>Ошибка</h1>}
+      return (
+      <div className={styles.Container}>
+          <Searchbar onSubmit={onChangeQuery} />
+          {error && <h1>Ошибка</h1>}
 
-      <Searchbar onSubmit={onChangeQuery} />
-      
-      <ImageGallery hits={hits} />
-      
-      {isLoading && <GalleryLoader />}
+              <ImageGallery>
+        {hits.map(({ id, webformatURL, largeImageURL }) => (
+          <ImageGalleryItem
+            key={id}
+            srcWebformat={webformatURL}
+            pictureId={id}
+            onClick={() => handleImageClick(largeImageURL)}
+          />
+        ))}
+      </ImageGallery>  
 
-      {shouldRenderLoadMoreButton && <Button onClick={this.fetchHits} />}
-
-        {/* <Searchbar onSubmit={this.onChangeQuery} />
-
-        <ImageGallery hits={hits} onClick={this.handleImageClick} />
+           {/* <ImageGallery hits={hits} onClick={handleImageClick(largeImageURL)} /> */}
+        {/* <ImageGallery hits={hits} onClick={this.handleImageClick} /> */}
 
         {isLoading && <GalleryLoader />}
 
-        {shouldRenderLoadMoreButton && <Button onClick={this.fetchHits} />}
+        {shouldRenderLoadMoreButton && <Button onClick={fetchHits} />}
 
-        {showModal && (
+        {/* {isModalOpen && (
           <Modal onClose={this.toggleModal} onClick={this.handleImageClick}>
             <img src={url} alt={tag} />
           </Modal>
-        )} */}
+          )} */}
+                {isModalOpen && (
+        <Modal onClose={toggleModal}>
+          <img src={largeImageURL} alt="" />
+        </Modal>
+      )}
       </div>
     );
+      
+    }
 
-}
 
 // class App extends Component {
 //   state = {
