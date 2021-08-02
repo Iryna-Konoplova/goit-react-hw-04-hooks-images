@@ -1,9 +1,8 @@
 // Модули
-// import React, { Component } from 'react';
 import { useState, useEffect } from 'react';
 
 // Компоненты
-import api from "./services/news-api";
+import * as api from "./services/api";
 import Searchbar from './components/Searchbar';
 import ImageGallery from './components/ImageGallery';
 import ImageGalleryItem from './components/ImageGalleryItem/ImageGalleryItem'
@@ -22,7 +21,6 @@ export default function App() {
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
-
   const [largeImageURL, setLargeImageURL] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -31,20 +29,21 @@ export default function App() {
       return;
     }
     fetchHits();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery]);
 
-    useEffect(() => {
+  useEffect(() => {
     window.scrollTo({
       top: document.documentElement.scrollHeight,
       behavior: "smooth",
     });
   }, [hits]);
 
-    const  onChangeQuery = query => {
-      setSearchQuery(query);
-      setHits([]);
-      setCurrentPage(1);
-      setError(null)
+  const onChangeQuery = query => {
+    setSearchQuery(query);
+    setHits([]);
+    setCurrentPage(1);
+    setError(null)
   };
 
   const fetchHits = () => {
@@ -53,7 +52,7 @@ export default function App() {
     api
       .fetchHits(option)
       .then(
-        (picturesArr) => setHits([...hits, ...picturesArr]),
+        (prevHits) => setHits([...hits, ...prevHits]),
         setCurrentPage(currentPage + 1)
       )
       .catch((error) => setError(error))
@@ -71,12 +70,14 @@ export default function App() {
 
   const shouldRenderLoadMoreButton = hits.length > 0 && !isLoading;
 
-      return (
-      <div className={styles.Container}>
-          <Searchbar onSubmit={onChangeQuery} />
-          {error && <h1>Ошибка</h1>}
+  return (
+    <div className={styles.Container}>
+          
+      <Searchbar onSubmit={onChangeQuery} />
 
-              <ImageGallery>
+      {error && <p>Sorry! Somethimg went wrong. Try again, please!</p>}
+    
+      <ImageGallery>
         {hits.map(({ id, webformatURL, largeImageURL }) => (
           <ImageGalleryItem
             key={id}
@@ -85,156 +86,17 @@ export default function App() {
             onClick={() => handleImageClick(largeImageURL)}
           />
         ))}
-      </ImageGallery>  
+      </ImageGallery>
 
-           {/* <ImageGallery hits={hits} onClick={handleImageClick(largeImageURL)} /> */}
-        {/* <ImageGallery hits={hits} onClick={this.handleImageClick} /> */}
+      {isLoading && <GalleryLoader />}
 
-        {isLoading && <GalleryLoader />}
+      {shouldRenderLoadMoreButton && <Button onClick={fetchHits} length={hits.length} />}
 
-        {shouldRenderLoadMoreButton && <Button onClick={fetchHits} />}
-
-        {/* {isModalOpen && (
-          <Modal onClose={this.toggleModal} onClick={this.handleImageClick}>
-            <img src={url} alt={tag} />
-          </Modal>
-          )} */}
-                {isModalOpen && (
+      {isModalOpen && (
         <Modal onClose={toggleModal}>
           <img src={largeImageURL} alt="" />
         </Modal>
       )}
-      </div>
-    );
-      
-    }
-
-
-// class App extends Component {
-//   state = {
-//     hits: [],
-//     currentPage: 1,
-//     currentPageImages: [],
-//     searchQuery: '',
-//     isLoading: false,
-//     error: null,
-//     showModal: false,
-//     url: '',
-//     tag: '',
-//   };
-
-//   componentDidUpdate(prevProps, prevState) {
-//     if (prevState.searchQuery !== this.state.searchQuery) {
-//       this.fetchHits();
-//     }
-//   }
-
-//   onChangeQuery = query => {
-//     this.setState({
-//       searchQuery: query,
-//       currentPage: 1,
-//       hits: [],
-//       error: null,
-//       url: '',
-//       tag: '',
-//     });
-//   };
-
-//   fetchHits = () => {
-//     const { searchQuery, currentPage } = this.state;
-//     const options = { searchQuery, currentPage };
-//     this.setState({ isLoading: true });
-//     newsApi
-//       .fetchHits(options)
-//       .then(hits => {
-//         this.setState(prevState => ({
-//           hits: [...prevState.hits, ...hits],
-//           currentPage: prevState.currentPage + 1,
-//           currentPageImages: [...hits],
-//         }));
-//         if (hits.length === 0) {
-//           this.setState({
-//             error: 'Nothing was find by your query. Try again.',
-//           });
-//         }
-//       })
-//       .then(() => {
-//         window.scrollTo({
-//           top: document.documentElement.scrollHeight,
-//           behavior: 'smooth',
-//         });
-//       })
-//       .catch(error => this.setState({ error }))
-//       .finally(() => this.setState({ isLoading: false }));
-//   };
-
-//   fetchHits = () => {
-//     const { searchQuery, currentPage } = this.state;
-//     const options = { searchQuery, currentPage };
-
-//     this.setState({ isLoading: true });
-
-//     newsApi
-//       .fetchHits(options)
-//       .then(hits => {
-//         this.setState(prevState => ({
-//           hits: [...prevState.hits, ...hits],
-//           currentPage: prevState.currentPage + 1,
-//         }));
-//         this.scrollDown();
-//       })
-//       .catch(error => this.setState({ error }))
-//       .finally(() => this.setState({ isLoading: false }));
-//   };
-
-//   scrollDown = () => {
-//     window.scrollTo({
-//       top: document.documentElement.scrollTop + window.innerHeight,
-//       behavior: 'smooth',
-//     });
-//   };
-
-//   handleImageClick = ({ target }) => {
-//     if (target.nodeName !== 'IMG') {
-//       return;
-//     }
-//     const { url } = target.dataset;
-//     const tag = target.alt;
-//     this.setState({
-//       url,
-//       tag,
-//     });
-//     this.toggleModal();
-//   };
-
-//   toggleModal = () => {
-//     this.setState(({ showModal }) => ({
-//       showModal: !showModal,
-//     }));
-//   };
-
-//   render() {
-//     const { hits, isLoading, showModal, url, tag } = this.state;
-//     const shouldRenderLoadMoreButton = hits.length > 0 && !isLoading;
-
-//     return (
-//       <div className={styles.Container}>
-//         <Searchbar onSubmit={this.onChangeQuery} />
-
-//         <ImageGallery hits={hits} onClick={this.handleImageClick} />
-
-//         {isLoading && <GalleryLoader />}
-
-//         {shouldRenderLoadMoreButton && <Button onClick={this.fetchHits} />}
-
-//         {showModal && (
-//           <Modal onClose={this.toggleModal} onClick={this.handleImageClick}>
-//             <img src={url} alt={tag} />
-//           </Modal>
-//         )}
-//       </div>
-//     );
-//   }
-// }
-
-// export default App;
+    </div>
+  );
+}
